@@ -1,7 +1,6 @@
 opencv-python-headless
 cupy-cuda12x
 numpy
-streamlit
 openslide-python
 openslide-bin
 pandas
@@ -9,3 +8,4 @@ pillow
 scikit-image
 torch>=2.2.0  # Use a compatible version
 torchvision>=0.21.0  # Ensure compatibility with the torch version
+streamlit==1.27.2  # or the latest stable version
