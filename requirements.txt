@@ -1,4 +1,4 @@
-opencv-python
+opencv-python-headless
 torch
 cupy-cuda12x
 numpy
