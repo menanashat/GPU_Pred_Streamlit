@@ -9,4 +9,3 @@ pandas
 pillow
 scikit-image
 torchvision
-libopenslide-dev
