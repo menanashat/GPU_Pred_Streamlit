@@ -1,11 +1,13 @@
 opencv-python-headless
-torch
+
 cupy-cuda12x
 numpy
-streamlit
+
 openslide-python
 openslide-bin
 pandas
 pillow
 scikit-image
 torchvision
+torch==2.0.1  # or the latest stable version
+streamlit==1.27.2  # or the latest stable version
