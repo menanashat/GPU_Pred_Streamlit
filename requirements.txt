@@ -1,0 +1,10 @@
+opencv-python
+torch
+cupy-cuda12x
+numpy
+streamlit
+openslide-python
+pandas
+pillow
+scikit-image
+torchvision
