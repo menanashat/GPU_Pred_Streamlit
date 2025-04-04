@@ -4,6 +4,7 @@ cupy-cuda12x
 numpy
 streamlit
 openslide-python
+openslide-bin
 pandas
 pillow
 scikit-image
