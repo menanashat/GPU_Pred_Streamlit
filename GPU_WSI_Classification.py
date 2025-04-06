@@ -1,7 +1,7 @@
 import os
 import cv2
 import torch
-import numpy as np  # Replaced cupy with numpy
+import numpy as np
 import streamlit as st
 import openslide
 import pandas as pd
@@ -64,7 +64,7 @@ def detect_tissue_regions(slide):
 def extract_tiles(slide, labeled_mask, downsample_factor, output_subdir):
     tiles_extracted = []
     slide_w, slide_h = slide.dimensions
-    
+
     for region in regionprops(labeled_mask):
         minr, minc, maxr, maxc = region.bbox
         min_x, min_y = int(minc * downsample_factor), int(minr * downsample_factor)
@@ -79,12 +79,12 @@ def extract_tiles(slide, labeled_mask, downsample_factor, output_subdir):
                 tile_np = np.array(tile)
                 gray_tile = cv2.cvtColor(tile_np, cv2.COLOR_RGB2GRAY)
                 tissue_ratio = np.sum(gray_tile < threshold_otsu(gray_tile)) / (TILE_SIZE * TILE_SIZE)
-                
+
                 if tissue_ratio > TISSUE_THRESHOLD:
                     tile_path = os.path.join(output_subdir, f"tile_{x}_{y}.jpg")
                     tile.save(tile_path)
                     tiles_extracted.append(tile_path)
-    
+
     return tiles_extracted
 
 # -------------------------
@@ -94,13 +94,13 @@ def process_svs_file(svs_path):
     filename = os.path.basename(svs_path).replace(".svs", "")
     output_subdir = os.path.join(OUTPUT_DIR, filename)
     os.makedirs(output_subdir, exist_ok=True)
-    
+
     slide = openslide.OpenSlide(svs_path)
     labeled_mask = detect_tissue_regions(slide)
     thumb_w, thumb_h = 1024, 1024
     slide_w, slide_h = slide.dimensions
     downsample_factor = slide_w / thumb_w
-    
+
     tile_paths = extract_tiles(slide, labeled_mask, downsample_factor, output_subdir)
     return tile_paths, output_subdir, downsample_factor
 
@@ -305,41 +305,44 @@ with st.expander("📊 Class Distribution"):
         "Apoptotic Bodies": "#DCDCDC", "Cytoplasmic Fragments": "#800080", "Granulocytes": "#1E90FF",
         "Mast Cells": "#FF8C00", "Adipose Tissue": "#FFFF00"
     }
-    for cls, percentage in st.session_state.class_distribution.items():
-        if cls not in ["Tumor Cells", "Mitosis", "Karyorrhexis", "Stroma"]:
-            color = CLASS_COLORS.get(cls, "#000000")
-            st.markdown(f"<span style='color:{color}; font-weight:bold;'>{cls}: {percentage}%</span>", unsafe_allow_html=True)
-
-    if st.button("🖼 Show Class Distribution Map"):
-        st.write("📍 **Visualizing Cell Type Distribution on WSI...**")
-        if st.session_state.svs_path:
-            try:
-                slide = openslide.OpenSlide(st.session_state.svs_path)
-                marked_thumbnail = mark_all_cell_types(slide, st.session_state.tile_predictions, st.session_state.downsample_factor)
-                if marked_thumbnail:
-                    st.image(marked_thumbnail, caption="Class Distribution Map", use_column_width=True)
-                else:
-                    st.error("❌ Failed to generate class distribution visualization.")
-            except Exception as e:
-                st.error(f"❌ Error opening SVS file: {e}")
-        else:
-            st.error("❌ SVS file not found. Please re-upload.")
-
-    if st.session_state.tumor_tiles and has_tumor and st.session_state.svs_path:
-        if st.button("🔍 Check Tumor Regions"):
-            st.write("🔬 Highlighting Tumor-Detected Regions...")
-            try:
-                slide = openslide.OpenSlide(st.session_state.svs_path)
-                marked_thumbnail = mark_tumor_regions(slide, st.session_state.tumor_tiles, st.session_state.downsample_factor)
-                if marked_thumbnail:
-                    st.image(marked_thumbnail, caption="Tumor Regions in WSI", use_column_width=True)
-                else:
-                    st.error("❌ Failed to generate tumor region visualization.")
-            except Exception as e:
-                st.error(f"❌ Error opening SVS file: {e}")
+    if st.session_state.class_distribution is None:
+        st.warning("Class distribution is not available.")
     else:
-        st.warning("⚠️ No Tumor Cells detected. Visualization disabled.")
+        for cls, percentage in st.session_state.class_distribution.items():
+            if cls not in ["Tumor Cells", "Mitosis", "Karyorrhexis", "Stroma"]:
+                color = CLASS_COLORS.get(cls, "#000000")
+                st.markdown(f"<span style='color:{color}; font-weight:bold;'>{cls}: {percentage}%</span>", unsafe_allow_html=True)
 
-    st.write("🗺 **Color Legend:**")
-    legend_html = "".join(f"<span style='color:{color}; font-weight:bold;'>⬤ {cls}</span>   |  " for cls, color in CLASS_COLORS.items())
-    st.markdown(legend_html, unsafe_allow_html=True)
+        if st.button("🖼 Show Class Distribution Map"):
+            st.write("📍 **Visualizing Cell Type Distribution on WSI...**")
+            if st.session_state.svs_path:
+                try:
+                    slide = openslide.OpenSlide(st.session_state.svs_path)
+                    marked_thumbnail = mark_all_cell_types(slide, st.session_state.tile_predictions, st.session_state.downsample_factor)
+                    if marked_thumbnail:
+                        st.image(marked_thumbnail, caption="Class Distribution Map", use_column_width=True)
+                    else:
+                        st.error("❌ Failed to generate class distribution visualization.")
+                except Exception as e:
+                    st.error(f"❌ Error opening SVS file: {e}")
+            else:
+                st.error("❌ SVS file not found. Please re-upload.")
+
+        if st.session_state.tumor_tiles and has_tumor and st.session_state.svs_path:
+            if st.button("🔍 Check Tumor Regions"):
+                st.write("🔬 Highlighting Tumor-Detected Regions...")
+                try:
+                    slide = openslide.OpenSlide(st.session_state.svs_path)
+                    marked_thumbnail = mark_tumor_regions(slide, st.session_state.tumor_tiles, st.session_state.downsample_factor)
+                    if marked_thumbnail:
+                        st.image(marked_thumbnail, caption="Tumor Regions in WSI", use_column_width=True)
+                    else:
+                        st.error("❌ Failed to generate tumor region visualization.")
+                except Exception as e:
+                    st.error(f"❌ Error opening SVS file: {e}")
+        else:
+            st.warning("⚠️ No Tumor Cells detected. Visualization disabled.")
+
+        st.write("🗺 **Color Legend:**")
+        legend_html = "".join(f"<span style='color:{color}; font-weight:bold;'>⬤ {cls}</span>   |  " for cls, color in CLASS_COLORS.items())
+        st.markdown(legend_html, unsafe_allow_html=True)
