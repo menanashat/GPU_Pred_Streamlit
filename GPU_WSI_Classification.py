@@ -1,8 +1,8 @@
+# Replace imports
 import os
 import cv2
 import torch
-import cupy as cp
-import numpy as np
+import numpy as np  # Replace cupy with numpy
 import streamlit as st
 import openslide
 import pandas as pd
@@ -13,8 +13,6 @@ from skimage.morphology import closing, square
 from skimage.measure import label, regionprops
 from collections import Counter
 from torchvision.models import convnext_tiny
-from PIL import ImageDraw
-
 # -------------------------
 # CONFIGURATION
 # -------------------------
@@ -68,15 +66,12 @@ transform = transforms.Compose([
 # -------------------------
 def detect_tissue_regions(slide):
     thumbnail = slide.get_thumbnail((1024, 1024))
-    thumbnail_gray = cp.array(cv2.cvtColor(np.array(thumbnail), cv2.COLOR_RGB2GRAY))
-
-    threshold = threshold_otsu(cp.asnumpy(thumbnail_gray))
+    thumbnail_gray = np.array(cv2.cvtColor(np.array(thumbnail), cv2.COLOR_RGB2GRAY))  # Use numpy
+    threshold = threshold_otsu(thumbnail_gray)  # No need for cp.asnumpy
     binary_mask = thumbnail_gray < threshold
-    binary_mask = closing(cp.asnumpy(binary_mask), square(5))
+    binary_mask = closing(binary_mask, square(5))  # Direct numpy array
     labeled_mask = label(binary_mask)
-
     return labeled_mask
-
 # -------------------------
 # EXTRACT TILES
 # -------------------------
@@ -96,8 +91,8 @@ def extract_tiles(slide, labeled_mask, downsample_factor, output_subdir):
 
                 tile = slide.read_region((x, y), 0, (TILE_SIZE, TILE_SIZE)).convert("RGB")
                 tile_np = np.array(tile)
-                gray_tile = cp.array(cv2.cvtColor(tile_np, cv2.COLOR_RGB2GRAY))
-                tissue_ratio = cp.sum(gray_tile < threshold_otsu(cp.asnumpy(gray_tile))) / (TILE_SIZE * TILE_SIZE)
+                gray_tile = cv2.cvtColor(tile_np, cv2.COLOR_RGB2GRAY)  # Use numpy directly
+                tissue_ratio = np.sum(gray_tile < threshold_otsu(gray_tile)) / (TILE_SIZE * TILE_SIZE)  # Numpy sum
                 
                 if tissue_ratio > TISSUE_THRESHOLD:
                     tile_path = os.path.join(output_subdir, f"tile_{x}_{y}.jpg")
