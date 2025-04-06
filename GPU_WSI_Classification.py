@@ -397,45 +397,47 @@ for var in session_vars:
     if var not in st.session_state:
         st.session_state[var] = None
 
+# Replace the original upload block with this
 uploaded_file = st.file_uploader("Upload an SVS file", type=["svs"])
 
-if uploaded_file is not None and st.session_state.tile_predictions is None:
+if uploaded_file is not None:
     svs_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    # Reset session state if it's a new file
+    if st.session_state.svs_path != svs_path:
+        st.session_state.svs_path = None
+        st.session_state.tile_predictions = None
+        st.session_state.tile_distributions = None
+        st.session_state.class_distribution = {}
+        st.session_state.tumor_tiles = []
+        st.session_state.mitosis_tiles = []
+        st.session_state.karyorrhexis_tiles = []
 
-    with open(svs_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    if st.session_state.tile_predictions is None:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        with open(svs_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.session_state.svs_path = svs_path
+        st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
-    st.session_state.svs_path = svs_path  
-    st.success(f"✅ {uploaded_file.name} uploaded successfully!")
+        st.write("🖼 Extracting tissue regions and tiling...")
+        tile_paths, tile_folder, downsample_factor = process_svs_file(svs_path)
+        st.session_state.downsample_factor = downsample_factor
 
-    # Processing
-    st.write("🖼 Extracting tissue regions and tiling...")
-    tile_paths, tile_folder, downsample_factor = process_svs_file(svs_path)
-    st.session_state.downsample_factor = downsample_factor  
+        if not tile_paths:
+            st.error("❌ No valid tissue-containing tiles found! Try another slide.")
+        else:
+            st.write(f"✅ Extracted **{len(tile_paths)}** tiles.")
+            st.write("🔍 Running classification on extracted tiles...")
+            tile_predictions, tile_distributions = classify_tiles(model, tile_paths)
+            final_prediction, class_distribution = aggregate_predictions(tile_predictions)
 
-    if not tile_paths:
-        st.error("❌ No valid tissue-containing tiles found! Try another slide.")
-    else:
-        st.write(f"✅ Extracted **{len(tile_paths)}** tiles.")
-        st.write("🔍 Running classification on extracted tiles...")
-
-        # Classification
-        tile_predictions, tile_distributions = classify_tiles(model, tile_paths)
-        final_prediction, class_distribution = aggregate_predictions(tile_predictions)
-
-        # Store results in session state
-        st.session_state.tile_predictions = tile_predictions
-        st.session_state.tile_distributions = tile_distributions
-        st.session_state.class_distribution = class_distribution
-
-        # Identify tumor-containing tiles
-        st.session_state.tumor_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Tumor Cells"]
-        st.session_state.mitosis_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Mitosis"]
-        st.session_state.karyorrhexis_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Karyorrhexis"]
-
-        # Save classification results
-        save_results_to_csv(tile_predictions, tile_distributions, uploaded_file.name)
+            st.session_state.tile_predictions = tile_predictions
+            st.session_state.tile_distributions = tile_distributions
+            st.session_state.class_distribution = class_distribution
+            st.session_state.tumor_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Tumor Cells"]
+            st.session_state.mitosis_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Mitosis"]
+            st.session_state.karyorrhexis_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Karyorrhexis"]
+            save_results_to_csv(tile_predictions, tile_distributions, uploaded_file.name)
 
 # -------------------------
 # DISPLAY CLASSIFICATION RESULTS
