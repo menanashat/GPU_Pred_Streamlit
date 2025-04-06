@@ -1,6 +1,5 @@
 opencv-python-headless==4.5.5.64
 
-cupy-cuda12x
 numpy
 openslide-python
 openslide-bin
