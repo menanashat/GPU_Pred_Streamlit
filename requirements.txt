@@ -1,9 +1,8 @@
 opencv-python-headless
 numpy
-openslide-python
 pandas
 pillow
 scikit-image
-streamlit==1.27.2
-torch==2.2.0
-torchvision==0.17.0
+torch==2.2.0  # Specify a compatible version
+torchvision==0.21.0  # Ensure compatibility with the torch version
+streamlit==1.27.2  # Stable version
