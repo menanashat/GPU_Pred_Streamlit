@@ -1,5 +1,5 @@
 opencv-python-headless
-cupy-cuda12x  # Ensure this matches the available CUDA version
+
 numpy
 openslide-python
 openslide-bin
