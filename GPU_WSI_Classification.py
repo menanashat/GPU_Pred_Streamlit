@@ -51,7 +51,7 @@ transform = transforms.Compose([
 # -------------------------
 def detect_tissue_regions(slide):
     thumbnail = slide.get_thumbnail((1024, 1024))
-    thumbnail_gray = np.array(cv2.cvtColor(np.array(thumbnail), cv2.COLOR_RGB2GRAY))  # Use numpy
+    thumbnail_gray = np.array(cv2.cvtColor(np.array(thumbnail), cv2.COLOR_RGB2GRAY))
     threshold = threshold_otsu(thumbnail_gray)
     binary_mask = thumbnail_gray < threshold
     binary_mask = closing(binary_mask, square(5))
