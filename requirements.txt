@@ -1,7 +1,7 @@
 streamlit==1.17.0
 torch==1.13.0
 torchvision==0.14.0
-cupy==9.6.0
+cupy-cuda112==9.6.0  # CUDA version 11.2
 opencv-python-headless==4.6.0.66
 Pillow==9.2.0
 openslide-python==1.2.0
