@@ -1,5 +1,5 @@
 opencv-python-headless
-cupy-cuda12x
+
 numpy
 openslide-python
 openslide-bin
