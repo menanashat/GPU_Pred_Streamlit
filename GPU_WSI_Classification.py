@@ -22,7 +22,8 @@ RESULTS_CSV = "classification_results.csv"
 TILE_SIZE = 256
 TISSUE_THRESHOLD = 0.5
 MODEL_PATH = "ConvNeXt_best_model.pth"
-HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/resolve/main/ConvNeXt_best_model.pth"
+HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/resolve/main/ConvNeXt_best_model.pth?download=true"
+
 
 def download_model():
     if not os.path.exists(MODEL_PATH):
