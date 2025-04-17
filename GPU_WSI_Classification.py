@@ -40,7 +40,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 st.write(f"🔌 Running on device: {device}")
 
 # Class names
-CLASS_NAMES = ["Tumor Cells","Mitosis","Karyorrhexis","Stroma", …]  # all 20 here
+CLASS_NAMES = ["Tumor Cells","Mitosis","Karyorrhexis","Stroma"]  # all 20 here
 
 # Transform
 transform = transforms.Compose([
