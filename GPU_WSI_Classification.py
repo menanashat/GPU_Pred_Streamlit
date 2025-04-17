@@ -14,6 +14,7 @@ from collections import Counter
 from torchvision.models import convnext_tiny
 import gdown
 import re
+import requests 
 # -------------------------
 # CONFIGURATION
 # -------------------------
