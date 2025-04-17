@@ -315,19 +315,18 @@ def extract_selected_file(kaggle_link):
     return m.group(1) if m else None
 
 def download_one_svs(user, dataset, file_name):
-    """Download exactly one .svs using KaggleApi, unzip, and return its path."""
-    # authenticate
-    creds = json.loads(st.secrets["KAGGLE_JSON"])
-    os.environ["KAGGLE_USERNAME"] = creds["username"]
-    os.environ["KAGGLE_KEY"] = creds["key"]
+    # Authenticate using two separate secrets
+    os.environ["KAGGLE_USERNAME"] = st.secrets["KAGGLE_USERNAME"]
+    os.environ["KAGGLE_KEY"]      = st.secrets["KAGGLE_KEY"]
+
     api = KaggleApi()
     api.authenticate()
 
-    # download the single file (will create file_name.zip)
+    # Download exactly that one file (it comes down as file_name.zip)
     api.dataset_download_file(
-        f"{user}/{dataset}",
+        f"{user}/{dataset}", 
         file_name,
-        path=UPLOAD_DIR,
+        path=UPLOAD_DIR, 
         force=True
     )
 
@@ -336,7 +335,7 @@ def download_one_svs(user, dataset, file_name):
         st.error("❌ Kaggle API did not produce the expected ZIP.")
         return None
 
-    # unzip it
+    # Unzip only that .svs
     with zipfile.ZipFile(zip_path, "r") as z:
         z.extract(file_name, UPLOAD_DIR)
     os.remove(zip_path)
