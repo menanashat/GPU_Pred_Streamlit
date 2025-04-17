@@ -329,6 +329,14 @@ def download_and_extract_kaggle_dataset(user, dataset):
         
         # Run the command to download and unzip the dataset
         os.system(download_command)
+
+        # Check the contents of the directory after extraction
+        extracted_files = []
+        for root, dirs, files in os.walk(UPLOAD_DIR):
+            for file in files:
+                extracted_files.append(os.path.join(root, file))
+        
+        st.write("📂 Extracted files:", extracted_files)  # Show all extracted files
         
         return True
     except Exception as e:
