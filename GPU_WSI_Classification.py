@@ -29,17 +29,30 @@ TILE_SIZE = 256
 TISSUE_THRESHOLD = 0.5
 MODEL_PATH = "ConvNeXt_best_model.pth"
 HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/resolve/main/ConvNeXt_best_model.pth"
-# Class Names
-CLASS_NAMES = [
-    "Tumor Cells", 
-    "Mitosis", 
-    "Karyorrhexis", 
-    "Stroma"
-]
-# Safely pick CUDA if it’s really there, otherwise CPU
+
+
+
+# ════════════════════════════════════════════════
+#  2) GLOBAL SETUP
+# ════════════════════════════════════════════════
+# Device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 st.write(f"🔌 Running on device: {device}")
-# -------------------------
+
+# Class names
+CLASS_NAMES = ["Tumor Cells","Mitosis","Karyorrhexis","Stroma", …]  # all 20 here
+
+# Transform
+transform = transforms.Compose([
+    transforms.Resize((224,224)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225]),
+])
+
+
+
+
+
 # DOWNLOAD MODEL IF NOT EXISTS
 # -------------------------
 def download_model():
@@ -85,10 +98,7 @@ def load_model():
     except Exception as e:
         raise RuntimeError(f"❌ Failed to load model: {str(e)}")
 
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-])
+
 
 # -------------------------
 # DETECT TISSUE REGIONS
