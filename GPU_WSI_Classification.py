@@ -304,71 +304,65 @@ if uploaded_file:
     st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
 
-# Extract Kaggle dataset name and user from the link
 def extract_kaggle_dataset_name(kaggle_link):
-    """Extract the dataset name and user from the Kaggle URL."""
-    match = re.search(r"kaggle\.com/datasets/([^/]+)/([^/]+)", kaggle_link)
-    if match:
-        return match.group(1), match.group(2)
-    return None, None
+    """Extract user and dataset slug from Kaggle URL."""
+    m = re.search(r"kaggle\.com/datasets/([^/]+)/([^/?]+)", kaggle_link)
+    return (m.group(1), m.group(2)) if m else (None, None)
 
-# Download Kaggle dataset using Kaggle API credentials stored in Streamlit secrets
-def download_and_extract_kaggle_dataset(user, dataset):
-    """Download Kaggle dataset files."""
-    try:
-        # Load the Kaggle credentials from Streamlit secrets (stored as a JSON)
-        kaggle_json = st.secrets["KAGGLE_JSON"]
-        kaggle_credentials = json.loads(kaggle_json)
-        
-        # Set up Kaggle credentials using the JSON
-        os.environ["KAGGLE_USERNAME"] = kaggle_credentials["username"]
-        os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
-        
-        # Construct the Kaggle API command for downloading the entire dataset
-        download_command = f"kaggle datasets download -d {user}/{dataset} -p {UPLOAD_DIR} --unzip"
-        
-        # Run the command to download the dataset
-        os.system(download_command)
+def extract_selected_file(kaggle_link):
+    """Extract the ?select=<filename> param, e.g. NBL-02.svs."""
+    m = re.search(r"[?&]select=([^&]+)", kaggle_link)
+    return m.group(1) if m else None
 
-        # Check the contents of the directory after download
-        extracted_files = []
-        for root, dirs, files in os.walk(UPLOAD_DIR):
-            for file in files:
-                extracted_files.append(os.path.join(root, file))
-        
-        st.write("📂 Extracted files:", extracted_files)  # Show all extracted files
-        return True
-    except Exception as e:
-        st.error(f"❌ Failed to download dataset: {e}")
-        return False
+def download_one_svs(user, dataset, file_name):
+    """Download exactly one .svs using KaggleApi, unzip, and return its path."""
+    # authenticate
+    creds = json.loads(st.secrets["KAGGLE_JSON"])
+    os.environ["KAGGLE_USERNAME"] = creds["username"]
+    os.environ["KAGGLE_KEY"] = creds["key"]
+    api = KaggleApi()
+    api.authenticate()
 
-# Extract .svs files starting with "NBL-" (e.g., NBL-01.svs, NBL-02.svs, ...)
-def extract_svs_files():
-    """Find and return all .svs files starting with 'NBL-'."""
-    svs_files = []
-    for root, dirs, files in os.walk(UPLOAD_DIR):
-        for file in files:
-            if file.endswith(".svs") and file.startswith("NBL-"):
-                svs_files.append(os.path.join(root, file))
-    return svs_files
+    # download the single file (will create file_name.zip)
+    api.dataset_download_file(
+        f"{user}/{dataset}",
+        file_name,
+        path=UPLOAD_DIR,
+        force=True
+    )
+
+    zip_path = os.path.join(UPLOAD_DIR, f"{file_name}.zip")
+    if not os.path.exists(zip_path):
+        st.error("❌ Kaggle API did not produce the expected ZIP.")
+        return None
+
+    # unzip it
+    with zipfile.ZipFile(zip_path, "r") as z:
+        z.extract(file_name, UPLOAD_DIR)
+    os.remove(zip_path)
+
+    return os.path.join(UPLOAD_DIR, file_name)
+
+# -------------------
+# Streamlit UI logic
+# -------------------
 
 if kaggle_link:
     user, dataset = extract_kaggle_dataset_name(kaggle_link)
-    if user and dataset:
-        st.write("📥 Downloading from Kaggle...")
-        if download_and_extract_kaggle_dataset(user, dataset):
-            # Get all .svs files starting with "NBL-"
-            svs_files = extract_svs_files()
-            if svs_files:
-                st.session_state.svs_files = svs_files
-                st.success(f"✅ {len(svs_files)} .svs files downloaded successfully!")
-                st.write("📂 Found the following .svs files:", svs_files)
-            else:
-                st.error("❌ No .svs files found in the dataset.")
-        else:
-            st.error("❌ Something went wrong with the Kaggle download.")
+    selected = extract_selected_file(kaggle_link)
+
+    if not (user and dataset and selected):
+        st.error("⚠️ Please use a URL like `…/datasets/user/dataset?select=NBL-02.svs`")
     else:
-        st.warning("⚠️ Invalid Kaggle link format.")
+        st.write("📥 Downloading from Kaggle…")
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        svs_path = download_one_svs(user, dataset, selected)
+
+        if svs_path and os.path.exists(svs_path):
+            st.session_state.svs_path = svs_path
+            st.success(f"✅ Downloaded `{selected}`!")
+        else:
+            st.error(f"❌ Failed to download `{selected}`.")
 # -------------------------
 # Process SVS file
 # -------------------------
