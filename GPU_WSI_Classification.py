@@ -302,6 +302,7 @@ if uploaded_file:
     st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
 
+# Extract Kaggle dataset name and user from the link
 def extract_kaggle_dataset_name(kaggle_link):
     """Extract the dataset name and user from the Kaggle URL."""
     match = re.search(r"kaggle\.com/datasets/([^/]+)/([^/]+)", kaggle_link)
@@ -309,33 +310,26 @@ def extract_kaggle_dataset_name(kaggle_link):
         return match.group(1), match.group(2)
     return None, None
 
+# Download Kaggle dataset using Kaggle API credentials stored in Streamlit secrets
 def download_and_extract_kaggle_dataset(user, dataset):
     """Download Kaggle dataset zip file and extract it."""
     try:
-        # Construct the URL to download the zip file directly (use Kaggle API or authenticated method if necessary)
-        download_url = f"https://www.kaggle.com/datasets/{user}/{dataset}/download"
+        # Set up Kaggle credentials using Streamlit secrets
+        os.environ["KAGGLE_USERNAME"] = st.secrets["KAGGLE_USERNAME"]
+        os.environ["KAGGLE_KEY"] = st.secrets["KAGGLE_KEY"]
         
-        # Download the dataset zip file
-        response = requests.get(download_url, stream=True)
-        zip_path = os.path.join(UPLOAD_DIR, f"{dataset}.zip")
+        # Construct the Kaggle API command for downloading the dataset
+        download_command = f"kaggle datasets download -d {user}/{dataset} -p {UPLOAD_DIR} --unzip"
         
-        # Save the zip file locally
-        with open(zip_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
+        # Run the command to download and unzip the dataset
+        os.system(download_command)
         
-        # Unzip the dataset
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(UPLOAD_DIR)
-        
-        # Remove the zip file after extraction
-        os.remove(zip_path)
         return True
     except Exception as e:
         st.error(f"❌ Failed to download or unzip dataset: {e}")
         return False
 
+# Extract the specific file (.svs) from the dataset
 def extract_specific_file(target_file_name):
     """Extract only the specific .svs file (e.g., NBL-02.svs)."""
     for root, dirs, files in os.walk(UPLOAD_DIR):
@@ -364,7 +358,6 @@ if kaggle_link:
             st.error("❌ Something went wrong with the Kaggle download.")
     else:
         st.warning("⚠️ Invalid Kaggle link format.")
-
 # -------------------------
 # Process SVS file
 # -------------------------
