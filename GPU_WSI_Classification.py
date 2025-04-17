@@ -315,32 +315,44 @@ def extract_selected_file(kaggle_link):
     return m.group(1) if m else None
 
 def download_one_svs(user, dataset, file_name):
-    # Authenticate using two separate secrets
+    # — Authenticate —
     os.environ["KAGGLE_USERNAME"] = st.secrets["KAGGLE_USERNAME"]
     os.environ["KAGGLE_KEY"]      = st.secrets["KAGGLE_KEY"]
-
     api = KaggleApi()
     api.authenticate()
 
-    # Download exactly that one file (it comes down as file_name.zip)
+    # ensure upload dir
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    # Download that one file
     api.dataset_download_file(
-        f"{user}/{dataset}", 
+        f"{user}/{dataset}",
         file_name,
-        path=UPLOAD_DIR, 
+        path=UPLOAD_DIR,
         force=True
     )
 
-    zip_path = os.path.join(UPLOAD_DIR, f"{file_name}.zip")
-    if not os.path.exists(zip_path):
-        st.error("❌ Kaggle API did not produce the expected ZIP.")
-        return None
+    raw_path = os.path.join(UPLOAD_DIR, file_name)
+    zip_path = raw_path + ".zip"
 
-    # Unzip only that .svs
-    with zipfile.ZipFile(zip_path, "r") as z:
-        z.extract(file_name, UPLOAD_DIR)
-    os.remove(zip_path)
+    # Case A: Kaggle gave us the raw .svs
+    if os.path.exists(raw_path):
+        return raw_path
 
-    return os.path.join(UPLOAD_DIR, file_name)
+    # Case B: Kaggle zipped it
+    if os.path.exists(zip_path):
+        try:
+            with zipfile.ZipFile(zip_path, "r") as z:
+                z.extract(file_name, UPLOAD_DIR)
+            os.remove(zip_path)
+            return raw_path
+        except zipfile.BadZipFile:
+            st.error(f"❌ Downloaded `{file_name}.zip` but it wasn’t a valid ZIP.")
+            return None
+
+    # Neither appeared
+    st.error("❌ Kaggle API didn’t produce the expected file or ZIP.")
+    return None
 
 # -------------------
 # Streamlit UI logic
