@@ -325,7 +325,7 @@ def download_and_extract_kaggle_dataset(user, dataset):
         os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
         
         # Construct the Kaggle API command for downloading the entire dataset
-        download_command = f"kaggle datasets download -d {user}/{dataset} -p {UPLOAD_DIR}"
+        download_command = f"kaggle datasets download -d {user}/{dataset} -p {UPLOAD_DIR} --unzip"
         
         # Run the command to download the dataset
         os.system(download_command)
