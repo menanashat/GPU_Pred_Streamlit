@@ -277,11 +277,11 @@ for var in session_vars:
 # Input widgets
 uploaded_file = st.file_uploader("📁 Upload an SVS file", type=["svs"])
 # gdrive_link = st.text_input("📎 Or paste a Google Drive shareable link")
-
+kaggle_link = st.text_input("📎 Or paste a Kaggle dataset link")
 # -------------------------
 # RESET session state if a new file/link is provided
 # -------------------------
-if (uploaded_file or gdrive_link) and st.session_state.tile_predictions is not None:
+if (uploaded_file or kaggle_link ) and st.session_state.tile_predictions is not None:
     st.session_state.svs_path = None
     st.session_state.tile_predictions = None
     st.session_state.tile_distributions = None
@@ -344,7 +344,7 @@ def extract_specific_file(target_file_name):
                 return os.path.join(root, file)
     return None
 
-kaggle_link = st.text_input("📎 Or paste a Kaggle dataset link")
+
 
 if kaggle_link:
     user, dataset = extract_kaggle_dataset_name(kaggle_link)
