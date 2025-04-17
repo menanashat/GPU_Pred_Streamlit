@@ -314,7 +314,7 @@ def extract_kaggle_dataset_name(kaggle_link):
 
 # Download Kaggle dataset using Kaggle API credentials stored in Streamlit secrets
 def download_and_extract_kaggle_dataset(user, dataset):
-    """Download Kaggle dataset zip file and extract it."""
+    """Download Kaggle dataset files."""
     try:
         # Load the Kaggle credentials from Streamlit secrets (stored as a JSON)
         kaggle_json = st.secrets["KAGGLE_JSON"]
@@ -325,32 +325,21 @@ def download_and_extract_kaggle_dataset(user, dataset):
         os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
         
         # Construct the Kaggle API command for downloading the dataset
-        download_command = f"kaggle datasets download -d {user}/{dataset} -p {UPLOAD_DIR} --unzip"
+        download_command = f"kaggle datasets download -d {user}/{dataset} -p {UPLOAD_DIR}"
         
-        # Run the command to download and unzip the dataset
+        # Run the command to download the dataset
         os.system(download_command)
 
-        # Check the contents of the directory after extraction
+        # Check the contents of the directory after download
         extracted_files = []
         for root, dirs, files in os.walk(UPLOAD_DIR):
             for file in files:
                 extracted_files.append(os.path.join(root, file))
         
         st.write("📂 Extracted files:", extracted_files)  # Show all extracted files
-        
-        # Check if the extracted file is a zip file and unzip it if so
-        for file in extracted_files:
-            if file.endswith(".zip"):
-                try:
-                    with zipfile.ZipFile(file, 'r') as zip_ref:
-                        zip_ref.extractall(UPLOAD_DIR)
-                    st.write(f"📂 Successfully extracted zip file: {file}")
-                except zipfile.BadZipFile:
-                    st.error(f"❌ {file} is not a valid zip file.")
-        
         return True
     except Exception as e:
-        st.error(f"❌ Failed to download or unzip dataset: {e}")
+        st.error(f"❌ Failed to download dataset: {e}")
         return False
 
 # Extract the first matching .svs file (e.g., NBL-01.svs to NBL-20.svs)
