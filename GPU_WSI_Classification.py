@@ -299,27 +299,32 @@ if uploaded_file:
     st.session_state.svs_path = svs_path
     st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
-elif gdrive_link:
+gdrive_link = st.text_input("📎 Paste Google Drive shareable link")
+if gdrive_link:
     file_id = extract_gdrive_file_id(gdrive_link)
     if file_id:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        svs_path = os.path.join(UPLOAD_DIR, "drive_slide.svs")
+        direct_url = f"https://drive.google.com/uc?id={file_id}&export=download"
         try:
+            import requests
+            os.makedirs(UPLOAD_DIR, exist_ok=True)
+            svs_path = os.path.join(UPLOAD_DIR, "drive_slide.svs")
             st.write("📥 Downloading from Google Drive...")
-            gdrive_url = f"https://drive.google.com/uc?id={file_id}&export=download"
-            with requests.get(gdrive_url, stream=True) as r:
-                r.raise_for_status()
-                with open(svs_path, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
+            response = requests.get(direct_url, stream=True)
+            with open(svs_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
                         f.write(chunk)
+            # Validate size
+            if os.path.getsize(svs_path) < 100_000:
+                st.error("❌ The downloaded file appears to be invalid (too small). Check the link or make sure it's shared publicly.")
+                st.stop()
             st.session_state.svs_path = svs_path
             st.success("✅ Download complete!")
         except Exception as e:
             st.error(f"❌ Failed to download file: {e}")
-            st.stop()
     else:
         st.warning("⚠️ Invalid Google Drive link format.")
-        st.stop()
+
 
 # -------------------------
 # Process SVS file
