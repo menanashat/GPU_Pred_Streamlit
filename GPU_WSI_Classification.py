@@ -29,7 +29,13 @@ TILE_SIZE = 256
 TISSUE_THRESHOLD = 0.5
 MODEL_PATH = "ConvNeXt_best_model.pth"
 HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/resolve/main/ConvNeXt_best_model.pth"
-
+# Class Names
+CLASS_NAMES = [
+    "Tumor Cells", 
+    "Mitosis", 
+    "Karyorrhexis", 
+    "Stroma"
+]
 # Safely pick CUDA if it’s really there, otherwise CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 st.write(f"🔌 Running on device: {device}")
