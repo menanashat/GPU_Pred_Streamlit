@@ -12,6 +12,7 @@ from skimage.morphology import closing, square
 from skimage.measure import label, regionprops
 from collections import Counter
 from torchvision.models import convnext_tiny
+import gdown
 
 # -------------------------
 # CONFIGURATION
@@ -25,28 +26,40 @@ MODEL_PATH = "ConvNeXt_best_model.pth"
 HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/resolve/main/ConvNeXt_best_model.pth"
 
 
+# -------------------------
+# DOWNLOAD MODEL IF NOT EXISTS
+# -------------------------
 def download_model():
     if not os.path.exists(MODEL_PATH):
-        import requests
+        print("🔽 Downloading model from Hugging Face...")
+        response = requests.get(HF_MODEL_URL, stream=True)
+        response.raise_for_status()
         with open(MODEL_PATH, "wb") as f:
-            response = requests.get(HF_MODEL_URL)
-            f.write(response.content)
-model =download_model()
-CLASS_NAMES = ["Tumor Cells", "Mitosis", "Karyorrhexis", "Stroma"]
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print("✅ Model downloaded successfully.")
+
+download_model()
 
 # -------------------------
 # LOAD MODEL
 # -------------------------
 def load_model():
+    print("🔄 Loading ConvNeXt model...")
     model = convnext_tiny(num_classes=20)
-    state_dict = torch.load(MODEL_PATH, map_location=device)
-    state_dict = {k: v for k, v in state_dict.items() if "classifier.2" not in k}
-    model.load_state_dict(state_dict, strict=False)
-    model.classifier[2] = torch.nn.Linear(in_features=768, out_features=4)
-    model.to(device)
-    model.eval()
-    return model
+    
+    try:
+        state_dict = torch.load(MODEL_PATH, map_location=device)
+        # Remove classifier head weights if shape mismatch
+        state_dict = {k: v for k, v in state_dict.items() if "classifier.2" not in k}
+        model.load_state_dict(state_dict, strict=False)
+        model.classifier[2] = torch.nn.Linear(in_features=768, out_features=len(CLASS_NAMES))
+        model.to(device)
+        model.eval()
+        print("✅ Model loaded and ready.")
+        return model
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to load model: {e}")
 
 model = load_model()
 
@@ -231,7 +244,7 @@ def mark_all_cell_types(slide, tile_predictions, downsample_factor):
 # STREAMLIT UI
 # -------------------------
 st.title("🧪 Multi-Class Tumor Classification in Whole Slide Images (WSI) 🧪")
-st.write("Upload an **SVS** file or provide a **Google Drive link** to classify the extracted tissue tiles.")
+st.write("Upload an **SVS** file or paste a **Google Drive link** to classify the extracted tissue tiles.")
 
 # Initialize session state
 session_vars = [
@@ -241,22 +254,22 @@ session_vars = [
 for var in session_vars:
     st.session_state.setdefault(var, None)
 
-# Function to convert Google Drive link to direct download
-def get_direct_gdrive_url(share_url):
-    if "drive.google.com" in share_url:
-        try:
-            file_id = share_url.split("/d/")[1].split("/")[0]
-            return f"https://drive.google.com/uc?id={file_id}&export=download"
-        except:
-            return None
-    return None
+# Function to convert Google Drive share link to direct download
+def extract_gdrive_file_id(link):
+    match = re.search(r"/d/([^/]+)", link)
+    if match:
+        return match.group(1)
+    match = re.search(r"id=([^&]+)", link)
+    return match.group(1) if match else None
 
-# Input options: upload or Google Drive link
-uploaded_file = st.file_uploader("Upload an SVS file", type=["svs"])
-drive_link = st.text_input("📎 Or paste a Google Drive shareable link")
+# Input widgets
+uploaded_file = st.file_uploader("📁 Upload an SVS file", type=["svs"])
+gdrive_link = st.text_input("📎 Or paste a Google Drive shareable link")
 
-# Reset session state if a new file/link is provided
-if (uploaded_file or drive_link) and st.session_state.tile_predictions is not None:
+# -------------------------
+# RESET session state if a new file/link is provided
+# -------------------------
+if (uploaded_file or gdrive_link) and st.session_state.tile_predictions is not None:
     st.session_state.svs_path = None
     st.session_state.tile_predictions = None
     st.session_state.tile_distributions = None
@@ -265,7 +278,9 @@ if (uploaded_file or drive_link) and st.session_state.tile_predictions is not No
     st.session_state.mitosis_tiles = []
     st.session_state.karyorrhexis_tiles = []
 
-# --- Handle File Upload or Google Drive Download ---
+# -------------------------
+# Handle File Upload or Google Drive
+# -------------------------
 if uploaded_file:
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     svs_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
@@ -274,26 +289,31 @@ if uploaded_file:
     st.session_state.svs_path = svs_path
     st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
-elif drive_link:
-    direct_url = get_direct_gdrive_url(drive_link)
-    if direct_url:
+elif gdrive_link:
+    file_id = extract_gdrive_file_id(gdrive_link)
+    if file_id:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        svs_path = os.path.join(UPLOAD_DIR, "drive_slide.svs")
         try:
-            os.makedirs(UPLOAD_DIR, exist_ok=True)
-            svs_path = os.path.join(UPLOAD_DIR, "drive_slide.svs")
             st.write("📥 Downloading from Google Drive...")
-            import requests
-            response = requests.get(direct_url, stream=True)
-            with open(svs_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+            gdrive_url = f"https://drive.google.com/uc?id={file_id}&export=download"
+            with requests.get(gdrive_url, stream=True) as r:
+                r.raise_for_status()
+                with open(svs_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
             st.session_state.svs_path = svs_path
             st.success("✅ Download complete!")
         except Exception as e:
             st.error(f"❌ Failed to download file: {e}")
+            st.stop()
     else:
         st.warning("⚠️ Invalid Google Drive link format.")
+        st.stop()
 
-# --- Process SVS file ---
+# -------------------------
+# Process SVS file
+# -------------------------
 if st.session_state.svs_path and st.session_state.tile_predictions is None:
     st.write("🖼 Extracting tissue regions and tiling...")
     tile_paths, tile_folder, downsample_factor = process_svs_file(st.session_state.svs_path)
@@ -316,7 +336,7 @@ if st.session_state.svs_path and st.session_state.tile_predictions is None:
         save_results_to_csv(tile_predictions, tile_distributions, os.path.basename(st.session_state.svs_path))
 
 # -------------------------
-# DISPLAY CLASSIFICATION RESULTS
+# Display Classification Results
 # -------------------------
 if st.session_state.tile_predictions and st.session_state.class_distribution:
     st.write("### 📊 **Tile Class Distribution**")
@@ -340,7 +360,7 @@ if st.session_state.tile_predictions and st.session_state.class_distribution:
     st.download_button("📥 Download Classification Results", open(RESULTS_CSV, "rb"), "classification_results.csv", "text/csv")
 
 # -------------------------
-# CLASS DISTRIBUTION BUTTON
+# Class Distribution Map
 # -------------------------
 with st.expander("📊 Class Distribution"):
     st.write("### 🔬 Full Class Breakdown")
@@ -353,44 +373,42 @@ with st.expander("📊 Class Distribution"):
         "Mast Cells": "#FF8C00", "Adipose Tissue": "#FFFF00"
     }
 
-    if st.session_state.class_distribution is None:
-        st.warning("Class distribution is not available.")
-    else:
+    if st.session_state.class_distribution:
         for cls, percentage in st.session_state.class_distribution.items():
             if cls not in selected_classes:
                 color = CLASS_COLORS.get(cls, "#000000")
                 st.markdown(f"<span style='color:{color}; font-weight:bold;'>{cls}: {percentage}%</span>", unsafe_allow_html=True)
 
-        if st.button("🖼 Show Class Distribution Map"):
-            st.write("📍 **Visualizing Cell Type Distribution on WSI...**")
+    if st.button("🖼 Show Class Distribution Map"):
+        st.write("📍 **Visualizing Cell Type Distribution on WSI...**")
+        try:
+            slide = openslide.OpenSlide(st.session_state.svs_path)
+            marked_thumbnail = mark_all_cell_types(slide, st.session_state.tile_predictions, st.session_state.downsample_factor)
+            if marked_thumbnail:
+                st.image(marked_thumbnail, caption="Class Distribution Map", use_column_width=True)
+            else:
+                st.error("❌ Failed to generate class distribution visualization.")
+        except Exception as e:
+            st.error(f"❌ Error opening SVS file: {e}")
+
+    if st.session_state.tumor_tiles and tumor_percentage > 0:
+        if st.button("🔍 Check Tumor Regions"):
+            st.write("🔬 Highlighting Tumor-Detected Regions...")
             try:
                 slide = openslide.OpenSlide(st.session_state.svs_path)
-                marked_thumbnail = mark_all_cell_types(slide, st.session_state.tile_predictions, st.session_state.downsample_factor)
+                marked_thumbnail = mark_tumor_regions(slide, st.session_state.tumor_tiles, st.session_state.downsample_factor)
                 if marked_thumbnail:
-                    st.image(marked_thumbnail, caption="Class Distribution Map", use_column_width=True)
+                    st.image(marked_thumbnail, caption="Tumor Regions in WSI", use_column_width=True)
                 else:
-                    st.error("❌ Failed to generate class distribution visualization.")
+                    st.error("❌ Failed to generate tumor region visualization.")
             except Exception as e:
                 st.error(f"❌ Error opening SVS file: {e}")
+    else:
+        st.warning("⚠️ No Tumor Cells detected. Visualization disabled.")
 
-        if st.session_state.tumor_tiles and tumor_percentage > 0:
-            if st.button("🔍 Check Tumor Regions"):
-                st.write("🔬 Highlighting Tumor-Detected Regions...")
-                try:
-                    slide = openslide.OpenSlide(st.session_state.svs_path)
-                    marked_thumbnail = mark_tumor_regions(slide, st.session_state.tumor_tiles, st.session_state.downsample_factor)
-                    if marked_thumbnail:
-                        st.image(marked_thumbnail, caption="Tumor Regions in WSI", use_column_width=True)
-                    else:
-                        st.error("❌ Failed to generate tumor region visualization.")
-                except Exception as e:
-                    st.error(f"❌ Error opening SVS file: {e}")
-        else:
-            st.warning("⚠️ No Tumor Cells detected. Visualization disabled.")
-
-        st.write("🗺 **Color Legend:**")
-        legend_html = "".join(
-            f"<span style='color:{color}; font-weight:bold;'>⬤ {cls}</span>   |  "
-            for cls, color in CLASS_COLORS.items()
-        )
-        st.markdown(legend_html, unsafe_allow_html=True)
+    st.write("🗺 **Color Legend:**")
+    legend_html = "".join(
+        f"<span style='color:{color}; font-weight:bold;'>⬤ {cls}</span>   |  "
+        for cls, color in CLASS_COLORS.items()
+    )
+    st.markdown(legend_html, unsafe_allow_html=True)
