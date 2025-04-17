@@ -299,7 +299,6 @@ if uploaded_file:
     st.session_state.svs_path = svs_path
     st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
-gdrive_link = st.text_input("📎 Paste Google Drive shareable link")
 if gdrive_link:
     file_id = extract_gdrive_file_id(gdrive_link)
     if file_id:
