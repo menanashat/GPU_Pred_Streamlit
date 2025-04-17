@@ -343,29 +343,27 @@ def download_and_extract_kaggle_dataset(user, dataset):
         st.error(f"❌ Failed to download or unzip dataset: {e}")
         return False
 
-# Extract the specific file (.svs) from the dataset
-def extract_specific_file(target_file_name):
-    """Extract only the specific .svs file (e.g., NBL-02.svs)."""
+# Extract the first matching .svs file (e.g., NBL-01.svs to NBL-20.svs)
+def extract_svs_file():
+    """Find and return the first .svs file in the directory."""
     for root, dirs, files in os.walk(UPLOAD_DIR):
         for file in files:
-            if file == target_file_name:
+            if file.endswith(".svs") and file.startswith("NBL-"):
                 return os.path.join(root, file)
     return None
-
 
 if kaggle_link:
     user, dataset = extract_kaggle_dataset_name(kaggle_link)
     if user and dataset:
         st.write("📥 Downloading from Kaggle...")
         if download_and_extract_kaggle_dataset(user, dataset):
-            # Specify the exact file you want (e.g., NBL-02.svs)
-            target_file = "NBL-02.svs"
-            svs_path = extract_specific_file(target_file)
+            # Dynamically find the first .svs file (e.g., NBL-01.svs)
+            svs_path = extract_svs_file()
             if svs_path:
                 st.session_state.svs_path = svs_path
-                st.success(f"✅ File {target_file} downloaded successfully!")
+                st.success(f"✅ File {os.path.basename(svs_path)} downloaded successfully!")
             else:
-                st.error(f"❌ {target_file} not found in the dataset.")
+                st.error(f"❌ No .svs file found in the dataset.")
         else:
             st.error("❌ Something went wrong with the Kaggle download.")
     else:
