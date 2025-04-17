@@ -276,7 +276,7 @@ for var in session_vars:
 
 # Input widgets
 uploaded_file = st.file_uploader("📁 Upload an SVS file", type=["svs"])
-gdrive_link = st.text_input("📎 Or paste a Google Drive shareable link")
+# gdrive_link = st.text_input("📎 Or paste a Google Drive shareable link")
 
 # -------------------------
 # RESET session state if a new file/link is provided
