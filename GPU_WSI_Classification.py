@@ -312,7 +312,7 @@ def extract_kaggle_dataset_name(kaggle_link):
 def download_and_extract_kaggle_dataset(user, dataset):
     """Download Kaggle dataset zip file and extract it."""
     try:
-        # Construct the URL to download the zip file directly
+        # Construct the URL to download the zip file directly (use Kaggle API or authenticated method if necessary)
         download_url = f"https://www.kaggle.com/datasets/{user}/{dataset}/download"
         
         # Download the dataset zip file
@@ -344,7 +344,8 @@ def extract_specific_file(target_file_name):
                 return os.path.join(root, file)
     return None
 
-
+# Input field for Kaggle link
+kaggle_link = st.text_input("📎 Or paste a Kaggle dataset link")
 
 if kaggle_link:
     user, dataset = extract_kaggle_dataset_name(kaggle_link)
