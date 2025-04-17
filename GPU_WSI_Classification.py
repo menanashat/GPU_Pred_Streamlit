@@ -31,26 +31,36 @@ HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/r
 # -------------------------
 def download_model():
     if not os.path.exists(MODEL_PATH):
+        import requests
+
         print("🔽 Downloading model from Hugging Face...")
         response = requests.get(HF_MODEL_URL, stream=True)
-        response.raise_for_status()
+
+        if response.status_code != 200 or "html" in response.headers.get("Content-Type", ""):
+            raise RuntimeError("❌ Failed to download model: Invalid response from Hugging Face. Check the URL or file permissions.")
+
         with open(MODEL_PATH, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
+
         print("✅ Model downloaded successfully.")
 
-download_model()
+
+
 
 # -------------------------
 # LOAD MODEL
 # -------------------------
 def load_model():
     print("🔄 Loading ConvNeXt model...")
+    from torchvision.models import convnext_tiny
     model = convnext_tiny(num_classes=20)
-    
+
     try:
+        if not os.path.exists(MODEL_PATH):
+            raise FileNotFoundError(f"{MODEL_PATH} not found.")
+
         state_dict = torch.load(MODEL_PATH, map_location=device)
-        # Remove classifier head weights if shape mismatch
         state_dict = {k: v for k, v in state_dict.items() if "classifier.2" not in k}
         model.load_state_dict(state_dict, strict=False)
         model.classifier[2] = torch.nn.Linear(in_features=768, out_features=len(CLASS_NAMES))
@@ -58,10 +68,9 @@ def load_model():
         model.eval()
         print("✅ Model loaded and ready.")
         return model
-    except Exception as e:
-        raise RuntimeError(f"❌ Failed to load model: {e}")
 
-model = load_model()
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to load model: {str(e)}")
 
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
