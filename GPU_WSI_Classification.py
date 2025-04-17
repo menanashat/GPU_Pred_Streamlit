@@ -314,9 +314,13 @@ def extract_kaggle_dataset_name(kaggle_link):
 def download_and_extract_kaggle_dataset(user, dataset):
     """Download Kaggle dataset zip file and extract it."""
     try:
-        # Set up Kaggle credentials using Streamlit secrets
-        os.environ["KAGGLE_USERNAME"] = st.secrets["KAGGLE_USERNAME"]
-        os.environ["KAGGLE_KEY"] = st.secrets["KAGGLE_KEY"]
+        # Load the Kaggle credentials from Streamlit secrets (stored as a JSON)
+        kaggle_json = st.secrets["KAGGLE_JSON"]
+        kaggle_credentials = json.loads(kaggle_json)
+        
+        # Set up Kaggle credentials using the JSON
+        os.environ["KAGGLE_USERNAME"] = kaggle_credentials["username"]
+        os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
         
         # Construct the Kaggle API command for downloading the dataset
         download_command = f"kaggle datasets download -d {user}/{dataset} -p {UPLOAD_DIR} --unzip"
@@ -337,8 +341,6 @@ def extract_specific_file(target_file_name):
             if file == target_file_name:
                 return os.path.join(root, file)
     return None
-
-# Input field for Kaggle link
 
 
 if kaggle_link:
