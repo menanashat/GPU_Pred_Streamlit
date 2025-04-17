@@ -345,7 +345,7 @@ def extract_specific_file(target_file_name):
     return None
 
 # Input field for Kaggle link
-kaggle_link = st.text_input("📎 Or paste a Kaggle dataset link")
+
 
 if kaggle_link:
     user, dataset = extract_kaggle_dataset_name(kaggle_link)
