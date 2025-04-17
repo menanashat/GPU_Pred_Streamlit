@@ -15,6 +15,8 @@ from torchvision.models import convnext_tiny
 import gdown
 import re
 import requests 
+import zipfile
+
 # -------------------------
 # CONFIGURATION
 # -------------------------
@@ -265,12 +267,12 @@ for var in session_vars:
     st.session_state.setdefault(var, None)
 
 # Function to convert Google Drive share link to direct download
-def extract_gdrive_file_id(link):
-    match = re.search(r"/d/([^/]+)", link)
-    if match:
-        return match.group(1)
-    match = re.search(r"id=([^&]+)", link)
-    return match.group(1) if match else None
+# def extract_gdrive_file_id(link):
+#     match = re.search(r"/d/([^/]+)", link)
+#     if match:
+#         return match.group(1)
+#     match = re.search(r"id=([^&]+)", link)
+#     return match.group(1) if match else None
 
 # Input widgets
 uploaded_file = st.file_uploader("📁 Upload an SVS file", type=["svs"])
@@ -299,31 +301,68 @@ if uploaded_file:
     st.session_state.svs_path = svs_path
     st.success(f"✅ {uploaded_file.name} uploaded successfully!")
 
-if gdrive_link:
-    file_id = extract_gdrive_file_id(gdrive_link)
-    if file_id:
-        direct_url = f"https://drive.google.com/uc?id={file_id}&export=download"
-        try:
-            import requests
-            os.makedirs(UPLOAD_DIR, exist_ok=True)
-            svs_path = os.path.join(UPLOAD_DIR, "drive_slide.svs")
-            st.write("📥 Downloading from Google Drive...")
-            response = requests.get(direct_url, stream=True)
-            with open(svs_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-            # Validate size
-            if os.path.getsize(svs_path) < 100_000:
-                st.error("❌ The downloaded file appears to be invalid (too small). Check the link or make sure it's shared publicly.")
-                st.stop()
-            st.session_state.svs_path = svs_path
-            st.success("✅ Download complete!")
-        except Exception as e:
-            st.error(f"❌ Failed to download file: {e}")
-    else:
-        st.warning("⚠️ Invalid Google Drive link format.")
 
+def extract_kaggle_dataset_name(kaggle_link):
+    """Extract the dataset name and user from the Kaggle URL."""
+    match = re.search(r"kaggle\.com/datasets/([^/]+)/([^/]+)", kaggle_link)
+    if match:
+        return match.group(1), match.group(2)
+    return None, None
+
+def download_and_extract_kaggle_dataset(user, dataset):
+    """Download Kaggle dataset zip file and extract it."""
+    try:
+        # Construct the URL to download the zip file directly
+        download_url = f"https://www.kaggle.com/datasets/{user}/{dataset}/download"
+        
+        # Download the dataset zip file
+        response = requests.get(download_url, stream=True)
+        zip_path = os.path.join(UPLOAD_DIR, f"{dataset}.zip")
+        
+        # Save the zip file locally
+        with open(zip_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        
+        # Unzip the dataset
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(UPLOAD_DIR)
+        
+        # Remove the zip file after extraction
+        os.remove(zip_path)
+        return True
+    except Exception as e:
+        st.error(f"❌ Failed to download or unzip dataset: {e}")
+        return False
+
+def extract_specific_file(target_file_name):
+    """Extract only the specific .svs file (e.g., NBL-02.svs)."""
+    for root, dirs, files in os.walk(UPLOAD_DIR):
+        for file in files:
+            if file == target_file_name:
+                return os.path.join(root, file)
+    return None
+
+kaggle_link = st.text_input("📎 Or paste a Kaggle dataset link")
+
+if kaggle_link:
+    user, dataset = extract_kaggle_dataset_name(kaggle_link)
+    if user and dataset:
+        st.write("📥 Downloading from Kaggle...")
+        if download_and_extract_kaggle_dataset(user, dataset):
+            # Specify the exact file you want (e.g., NBL-02.svs)
+            target_file = "NBL-02.svs"
+            svs_path = extract_specific_file(target_file)
+            if svs_path:
+                st.session_state.svs_path = svs_path
+                st.success(f"✅ File {target_file} downloaded successfully!")
+            else:
+                st.error(f"❌ {target_file} not found in the dataset.")
+        else:
+            st.error("❌ Something went wrong with the Kaggle download.")
+    else:
+        st.warning("⚠️ Invalid Kaggle link format.")
 
 # -------------------------
 # Process SVS file
