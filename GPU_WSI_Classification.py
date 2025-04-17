@@ -338,6 +338,13 @@ def download_and_extract_kaggle_dataset(user, dataset):
         
         st.write("📂 Extracted files:", extracted_files)  # Show all extracted files
         
+        # Look for any zip files and extract them
+        for file in extracted_files:
+            if file.endswith(".zip"):
+                with zipfile.ZipFile(file, 'r') as zip_ref:
+                    zip_ref.extractall(UPLOAD_DIR)
+                st.write(f"📂 Extracted zip file: {file}")
+        
         return True
     except Exception as e:
         st.error(f"❌ Failed to download or unzip dataset: {e}")
