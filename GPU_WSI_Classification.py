@@ -32,9 +32,9 @@ HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/r
 
 
 
-# ════════════════════════════════════════════════
-#  2) GLOBAL SETUP
-# ════════════════════════════════════════════════
+# -------------------------
+# SETUP
+# -------------------------
 # Device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 st.write(f"🔌 Running on device: {device}")
@@ -98,7 +98,7 @@ def load_model():
     except Exception as e:
         raise RuntimeError(f"❌ Failed to load model: {str(e)}")
 
-
+model=load_model()
 
 # -------------------------
 # DETECT TISSUE REGIONS
