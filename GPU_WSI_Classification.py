@@ -29,8 +29,7 @@ RESULTS_CSV = "classification_results.csv"
 TILE_SIZE = 256
 TISSUE_THRESHOLD = 0.5
 MODEL_PATH = "ConvNeXt_best_model.pth"
-HF_MODEL_URL = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth/resolve/main/ConvNeXt_best_model.pth"
-
+HF_REPO_ID   = "minaNashatFayez/ConvNeXt_best_model.pth" 
 
 
 # -------------------------
@@ -53,51 +52,53 @@ transform = transforms.Compose([
 
 
 
-
+# -------------------------
 # DOWNLOAD MODEL IF NOT EXISTS
 # -------------------------
+
 def download_model():
+    """Download the model from Hugging Face Hub if it’s missing or corrupted."""
     if not os.path.exists(MODEL_PATH):
-        import requests
+        st.write("🔽 Downloading model from Hugging Face Hub…")
+        try:
+            # This will fetch the raw .pth into the current directory
+            hf_hub_download(
+                repo_id=HF_REPO_ID,
+                filename=MODEL_PATH,
+                cache_dir=".",          # save into working dir
+                force_download=True     # re‑download if already there
+            )
+            st.write("✅ Model downloaded successfully.")
+        except Exception as e:
+            st.error(f"❌ Failed to download model: {e}")
+            raise
 
-        print("🔽 Downloading model from Hugging Face...")
-        response = requests.get(HF_MODEL_URL, stream=True)
 
-        if response.status_code != 200 or "html" in response.headers.get("Content-Type", ""):
-            raise RuntimeError("❌ Failed to download model: Invalid response from Hugging Face. Check the URL or file permissions.")
-
-        with open(MODEL_PATH, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-
-        print("✅ Model downloaded successfully.")
-
-
-download_model()
 
 # -------------------------
 # LOAD MODEL
 # -------------------------
 def load_model():
-    print("🔄 Loading ConvNeXt model...")
+    """Load the ConvNeXt model, downloading it first if needed."""
+    # ensure the file is present (and correct)
+    download_model()
+
+    st.write("🔄 Loading ConvNeXt model…")
     from torchvision.models import convnext_tiny
-    model = convnext_tiny(num_classes=20)
+    model = convnext_tiny(num_classes=len(CLASS_NAMES))
 
     try:
-        if not os.path.exists(MODEL_PATH):
-            raise FileNotFoundError(f"{MODEL_PATH} not found.")
-
         state_dict = torch.load(MODEL_PATH, map_location=device)
+        # strip out any incompatible keys and reassign final layer
         state_dict = {k: v for k, v in state_dict.items() if "classifier.2" not in k}
         model.load_state_dict(state_dict, strict=False)
         model.classifier[2] = torch.nn.Linear(in_features=768, out_features=len(CLASS_NAMES))
         model.to(device)
         model.eval()
-        print("✅ Model loaded and ready.")
+        st.write("✅ Model loaded and ready.")
         return model
-
     except Exception as e:
-        raise RuntimeError(f"❌ Failed to load model: {str(e)}")
+        raise RuntimeError(f"❌ Failed to load model: {e}")
 
 model=load_model()
 
