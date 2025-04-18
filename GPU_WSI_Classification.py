@@ -18,6 +18,7 @@ import requests
 import zipfile
 import json
 from kaggle.api.kaggle_api_extended import KaggleApi
+from huggingface_hub import hf_hub_download
 
 # -------------------------
 # CONFIGURATION
