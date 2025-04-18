@@ -461,12 +461,7 @@ if st.session_state.tile_predictions and st.session_state.class_distribution:
 with st.expander("📊 Class Distribution"):
     st.write("### 🔬 Full Class Breakdown")
     CLASS_COLORS = {
-        "Tumor Cells": "#FF0000", "Mitosis": "#0000FF", "Karyorrhexis": "#00FF00", "Stroma": "#FFFF00",
-        "Karyolysis": "#FFA500", "Necrosis": "#800080", "Inflammatory Cells": "#FFFFFF", "Blood Vessels": "#8B0000",
-        "Fibroblasts": "#4682B4", "Macrophages": "#FF4500", "Epithelial Cells": "#9932CC", "Lymphocytes": "#DC143C",
-        "Endothelial Cells": "#FFD700", "Connective Tissue": "#32CD32", "Basement Membrane": "#D2691E",
-        "Apoptotic Bodies": "#DCDCDC", "Cytoplasmic Fragments": "#800080", "Granulocytes": "#1E90FF",
-        "Mast Cells": "#FF8C00", "Adipose Tissue": "#FFFF00"
+        "Tumor Cells": "#FF0000", "Mitosis": "#0000FF", "Karyorrhexis": "#00FF00", "Stroma": "#FFFF00"
     }
 
     if st.session_state.class_distribution:
