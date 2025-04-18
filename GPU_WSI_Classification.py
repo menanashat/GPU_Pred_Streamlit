@@ -112,7 +112,7 @@ def load_model():
     st.write("✅ Model loaded and ready.")
     return model
 
-model=load_model()
+
 
 # -------------------------
 # DETECT TISSUE REGIONS
@@ -299,7 +299,7 @@ session_vars = [
 ]
 for var in session_vars:
     st.session_state.setdefault(var, None)
-
+model=load_model()
 # Function to convert Google Drive share link to direct download
 # def extract_gdrive_file_id(link):
 #     match = re.search(r"/d/([^/]+)", link)
