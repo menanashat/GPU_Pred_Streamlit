@@ -428,7 +428,8 @@ if st.session_state.svs_path and st.session_state.tile_predictions is None:
         st.session_state.tumor_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Tumor Cells"]
         st.session_state.mitosis_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Mitosis"]
         st.session_state.karyorrhexis_tiles = [tile for tile, pred in tile_predictions.items() if pred == "Karyorrhexis"]
-        save_results_to_csv(tile_predictions, tile_distributions, os.path.basename(st.session_state.svs_path))
+        slide_name = os.path.basename(tile_folder)
+        save_results_to_csv(tile_predictions, tile_distributions, slide_name)
 
 # -------------------------
 # Display Classification Results
