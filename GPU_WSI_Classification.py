@@ -29,7 +29,7 @@ RESULTS_CSV = "classification_results.csv"
 TILE_SIZE = 256
 TISSUE_THRESHOLD = 0.5
 MODEL_PATH = "ConvNeXt_best_model.pth"
-HF_REPO_ID   = "https://huggingface.co/minaNashatFayez/ConvNeXt_best_model.pth" 
+HF_REPO_ID   = "minaNashatFayez/ConvNeXt_best_model.pth" 
 
 
 # -------------------------
