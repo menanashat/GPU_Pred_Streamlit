@@ -28,7 +28,7 @@ OUTPUT_DIR = "./tiles_output"
 RESULTS_CSV = "classification_results.csv"
 TILE_SIZE = 256
 TISSUE_THRESHOLD = 0.5
-MODEL_PATH = "ConvNeXt_best_model.pth"
+HF_FILENAME  = "ConvNeXt_best_model.pth"
 HF_REPO_ID   = "minaNashatFayez/ConvNeXt_best_model.pth" 
 
 
@@ -79,26 +79,28 @@ def download_model():
 # LOAD MODEL
 # -------------------------
 def load_model():
-    """Load the ConvNeXt model, downloading it first if needed."""
-    # ensure the file is present (and correct)
-    download_model()
-
-    st.write("🔄 Loading ConvNeXt model…")
+    st.write("🔄 Downloading and loading ConvNeXt model…")
+    # 1) fetch the checkpoint file (caches under ~/.cache/huggingface/hub by default)
+    local_path = hf_hub_download(
+        repo_id=HF_REPO_ID,
+        filename=HF_FILENAME,
+        revision="main",       # or the commit SHA you want
+        force_download=True    # re-download even if it’s cached
+    )
+    # 2) instantiate your model
     from torchvision.models import convnext_tiny
     model = convnext_tiny(num_classes=len(CLASS_NAMES))
-
-    try:
-        state_dict = torch.load(MODEL_PATH, map_location=device)
-        # strip out any incompatible keys and reassign final layer
-        state_dict = {k: v for k, v in state_dict.items() if "classifier.2" not in k}
-        model.load_state_dict(state_dict, strict=False)
-        model.classifier[2] = torch.nn.Linear(in_features=768, out_features=len(CLASS_NAMES))
-        model.to(device)
-        model.eval()
-        st.write("✅ Model loaded and ready.")
-        return model
-    except Exception as e:
-        raise RuntimeError(f"❌ Failed to load model: {e}")
+    # 3) load weights
+    state_dict = torch.load(local_path, map_location=device)
+    # strip any unwanted keys, adjust final layer
+    state_dict = {k: v for k, v in state_dict.items() if "classifier.2" not in k}
+    model.load_state_dict(state_dict, strict=False)
+    model.classifier[2] = torch.nn.Linear(in_features=768, out_features=len(CLASS_NAMES))
+    # 4) move to device & eval
+    model.to(device)
+    model.eval()
+    st.write("✅ Model loaded and ready.")
+    return model
 
 model=load_model()
 
