@@ -72,7 +72,7 @@ def download_model():
         print("✅ Model downloaded successfully.")
 
 
-
+download_model()
 
 # -------------------------
 # LOAD MODEL
