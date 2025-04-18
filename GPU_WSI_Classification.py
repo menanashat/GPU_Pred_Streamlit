@@ -79,26 +79,36 @@ def download_model():
 # LOAD MODEL
 # -------------------------
 def load_model():
-    st.write("🔄 Downloading and loading ConvNeXt model…")
-    # 1) fetch the checkpoint file (caches under ~/.cache/huggingface/hub by default)
+    """
+    Downloads the ConvNeXt checkpoint from HF Hub (if needed) and returns
+    a ready-to-use, eval-mode, device-moved model.
+    """
+    st.write("🔄 Downloading & loading ConvNeXt model…")
+
+    # This will fetch the file (and cache it under ~/.cache/huggingface/hub by default)
     local_path = hf_hub_download(
-        repo_id=HF_REPO_ID,
-        filename=HF_FILENAME,
-        revision="main",       # or the commit SHA you want
-        force_download=True    # re-download even if it’s cached
+        repo_id   = HF_REPO_ID,   # e.g. "minaNashatFayez/ConvNeXt_best_model.pth"
+        filename  = HF_FILENAME,  # "ConvNeXt_best_model.pth"
+        revision  = "main",       # or a specific commit tag
+        force_download = True     # re‑download even if cached
     )
-    # 2) instantiate your model
+
+    # Build the architecture
     from torchvision.models import convnext_tiny
     model = convnext_tiny(num_classes=len(CLASS_NAMES))
-    # 3) load weights
+
+    # Load the weights
     state_dict = torch.load(local_path, map_location=device)
-    # strip any unwanted keys, adjust final layer
+    # Strip any old classifier weights if you used a different head
     state_dict = {k: v for k, v in state_dict.items() if "classifier.2" not in k}
     model.load_state_dict(state_dict, strict=False)
+    # Re-attach your final layer
     model.classifier[2] = torch.nn.Linear(in_features=768, out_features=len(CLASS_NAMES))
-    # 4) move to device & eval
+
+    # Send it to the right device
     model.to(device)
     model.eval()
+
     st.write("✅ Model loaded and ready.")
     return model
 
