@@ -19,15 +19,7 @@ import zipfile
 import json
 from kaggle.api.kaggle_api_extended import KaggleApi
 from huggingface_hub import hf_hub_download
-import random
 
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-torch.cuda.manual_seed_all(SEED)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
 
 # -------------------------
 # CONFIGURATION
