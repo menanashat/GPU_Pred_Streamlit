@@ -11,3 +11,4 @@ openslide-bin
 gdown
 kaggle
 huggingface-hub
+random
