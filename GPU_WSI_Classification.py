@@ -19,6 +19,15 @@ import zipfile
 import json
 from kaggle.api.kaggle_api_extended import KaggleApi
 from huggingface_hub import hf_hub_download
+import random
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 # -------------------------
 # CONFIGURATION
@@ -46,7 +55,6 @@ CLASS_NAMES = ["Tumor Cells","Mitosis","Karyorrhexis","Stroma"]  # all 20 here
 transform = transforms.Compose([
     transforms.Resize((224,224)),
     transforms.ToTensor(),
-    transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225]),
 ])
 
 
@@ -178,7 +186,7 @@ def process_svs_file(svs_path):
 def classify_tiles(model, tile_paths):
     tile_predictions = {}
     tile_distributions = {}
-    for tile_path in tile_paths:
+    for tile_path in sorted(tile_paths):
         img = Image.open(tile_path)
         img_tensor = transform(img).unsqueeze(0).to(device)
         with torch.no_grad():
