@@ -90,7 +90,7 @@ def load_model():
         repo_id   = HF_REPO_ID,   # e.g. "minaNashatFayez/ConvNeXt_best_model.pth"
         filename  = HF_FILENAME,  # "ConvNeXt_best_model.pth"
         revision  = "main",       # or a specific commit tag
-        force_download = True     # re‑download even if cached
+        #force_download = True     # re‑download even if cached
     )
 
     # Build the architecture
